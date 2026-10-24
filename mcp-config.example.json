@@ -1,0 +1,15 @@
+{
+  "_comment": [
+    "这是麦当劳官方 MCP README §2.3 配置格式的变体，仅作填写格式参考。",
+    "占位符 ${MCD_MCP_TOKEN} 不保证所有客户端都会自动展开：多数客户端（含纯 JSON 配置文件方式）需要手动替换为真实 Token。",
+    "在 WorkBuddy 里更推荐走连接器界面配置（地址 https://mcp.mcd.cn，类型 Streamable HTTP，Header Authorization: Bearer <token>），无需手改本文件。",
+    "不要把填好真实 Token 的版本提交进仓库：真实配置请另存为 mcp-config.json 或 *.local.json，二者已在 .gitignore 中。"
+  ],
+  "mcpServers": {
+    "mcd-mcp": {
+      "type": "streamablehttp",
+      "url": "https://mcp.mcd.cn",
+      "headers": { "Authorization": "Bearer ${MCD_MCP_TOKEN}" }
+    }
+  }
+}

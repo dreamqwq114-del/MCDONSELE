@@ -1,0 +1,201 @@
+{
+  "schema_version": "1.0",
+  "data_mode": "fictional",
+  "generated_at": "2026-10-24T19:00:00+08:00",
+  "store": {
+    "store_code": "TEST-STORE-001",
+    "store_name": "测试门店（虚构数据）",
+    "city": "虚构市",
+    "area": "虚构商圈",
+    "queried_at": "2026-10-24T18:59:00+08:00"
+  },
+  "order": {
+    "mode": "pickup",
+    "be_type": 1,
+    "order_type_code": 1,
+    "be_code": null
+  },
+  "members": [
+    {
+      "id": "A",
+      "budget_cents": 3000,
+      "main_required": true,
+      "drink": "optional",
+      "excludes": [],
+      "share_willing": true
+    },
+    {
+      "id": "B",
+      "budget_cents": 3500,
+      "main_required": true,
+      "drink": "required",
+      "excludes": [],
+      "share_willing": true
+    }
+  ],
+  "sharing_rule": {
+    "status": "confirmed",
+    "personal_lines": "self_pay",
+    "shared_lines": "equal_split_among_participants",
+    "order_discount": "proportional_to_line_amount",
+    "extra_fee": {
+      "mode": "equal_all",
+      "bearer": null
+    }
+  },
+  "plans": [
+    {
+      "plan_id": "P1",
+      "label": "主食齐全 + 共享大薯条",
+      "lines": [
+        {
+          "line_id": "L1",
+          "code": "TEST-MAIN-001",
+          "name": "巨无霸",
+          "kind": "main",
+          "qty": 1,
+          "unit_price_cents": 2400,
+          "line_total_cents": 2400,
+          "price_state": "ok",
+          "owner": "A",
+          "shared_by": [],
+          "combo": {"confirmed": false, "components": []},
+          "note": ""
+        },
+        {
+          "line_id": "L2",
+          "code": "TEST-MAIN-002",
+          "name": "麦辣鸡腿堡",
+          "kind": "main",
+          "qty": 1,
+          "unit_price_cents": 1900,
+          "line_total_cents": 1900,
+          "price_state": "ok",
+          "owner": "B",
+          "shared_by": [],
+          "combo": {"confirmed": false, "components": []},
+          "note": ""
+        },
+        {
+          "line_id": "L3",
+          "code": "TEST-DRINK-001",
+          "name": "中杯可口可乐",
+          "kind": "drink",
+          "qty": 1,
+          "unit_price_cents": 900,
+          "line_total_cents": 900,
+          "price_state": "ok",
+          "owner": "B",
+          "shared_by": [],
+          "combo": {"confirmed": false, "components": []},
+          "note": ""
+        },
+        {
+          "line_id": "L4",
+          "code": "TEST-SIDE-001",
+          "name": "大薯条",
+          "kind": "side",
+          "qty": 1,
+          "unit_price_cents": 1200,
+          "line_total_cents": 1200,
+          "price_state": "ok",
+          "owner": null,
+          "shared_by": ["A", "B"],
+          "combo": {"confirmed": false, "components": []},
+          "note": "独立小食，两人均分"
+        }
+      ],
+      "quote": {
+        "status": "verified",
+        "quoted_at": "2026-10-24T19:01:00+08:00",
+        "total_cents": 6100,
+        "product_cents": 6400,
+        "fee_cents": 0,
+        "discount_cents": 300,
+        "fee_items": [],
+        "discount_items": [{"label": "整单优惠", "cents": 300}],
+        "field_map": {"total": "data.price", "product": "data.productPrice"},
+        "explain": "总额 = 商品 64.00 元 - 整单优惠 3.00 元，无额外费用"
+      },
+      "unmet": [],
+      "tradeoffs": [
+        "含一份共享大薯条，两人各摊一半",
+        "含一张整单优惠，按行金额比例分摊到各人"
+      ]
+    },
+    {
+      "plan_id": "P2",
+      "label": "无共享小食的省一档方案",
+      "lines": [
+        {
+          "line_id": "L1",
+          "code": "TEST-MAIN-003",
+          "name": "双层吉士汉堡",
+          "kind": "main",
+          "qty": 1,
+          "unit_price_cents": 1600,
+          "line_total_cents": 1600,
+          "price_state": "ok",
+          "owner": "A",
+          "shared_by": [],
+          "combo": {"confirmed": false, "components": []},
+          "note": ""
+        },
+        {
+          "line_id": "L2",
+          "code": "TEST-MAIN-004",
+          "name": "板烧鸡腿堡",
+          "kind": "main",
+          "qty": 1,
+          "unit_price_cents": 2200,
+          "line_total_cents": 2200,
+          "price_state": "ok",
+          "owner": "B",
+          "shared_by": [],
+          "combo": {"confirmed": false, "components": []},
+          "note": ""
+        },
+        {
+          "line_id": "L3",
+          "code": "TEST-DRINK-001",
+          "name": "中杯可口可乐",
+          "kind": "drink",
+          "qty": 1,
+          "unit_price_cents": 900,
+          "line_total_cents": 900,
+          "price_state": "ok",
+          "owner": "B",
+          "shared_by": [],
+          "combo": {"confirmed": false, "components": []},
+          "note": ""
+        }
+      ],
+      "quote": {
+        "status": "verified",
+        "quoted_at": "2026-10-24T19:02:00+08:00",
+        "total_cents": 4700,
+        "product_cents": 4700,
+        "fee_cents": 0,
+        "discount_cents": 0,
+        "fee_items": [],
+        "discount_items": [],
+        "field_map": {"total": "data.price", "product": "data.productPrice"},
+        "explain": "总额 = 商品合计，无优惠无额外费用"
+      },
+      "unmet": ["未包含共享小食：两人都同意共享，但本方案不含小食"],
+      "tradeoffs": [
+        "总价更低，但没有共享小食",
+        "两份主食单价更低，档位与 P1 不同"
+      ]
+    }
+  ],
+  "best_plan_id": null,
+  "notes": [
+    "本文件为虚构样例，仅用于功能演示，不是任何真实报价。",
+    "商品编码以 TEST- 开头，门店与商圈均为虚构，禁止当作真实数据展示。"
+  ],
+  "sources": {
+    "mcp_endpoint": "https://mcp.mcd.cn",
+    "tools_used": []
+  }
+}

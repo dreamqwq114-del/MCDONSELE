@@ -1,0 +1,1417 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>__MEAL_MATES_TITLE__</title>
+<!--
+  麦单合伙人 · 点单卡模板（暖色小票风，纯静态单文件）
+  数据由 scripts/render_card.py 注入到页面底部的 application/json 脚本块，
+  页面脚本只读取该 JSON，不做任何金额重算。
+  不引用任何外部字体、样式或脚本。
+-->
+<style>
+:root{
+  --cream:#fbf2e2;
+  --paper:#fffdf7;
+  --paper-2:#fff9ee;
+  --ink:#2f2723;
+  --ink-2:#6d5b4e;
+  --ink-3:#94816f;
+  --line:#e9dcc7;
+  --line-strong:#ddcbb0;
+  --red:#c8402a;
+  --red-deep:#9c2b18;
+  --red-soft:#fdece8;
+  --amber:#e9a63a;
+  --amber-deep:#8a4b00;
+  --green:#2e7a53;
+  --green-soft:#e9f4ec;
+  --blue:#4d6272;
+  --blue-soft:#eef2f5;
+  --radius:14px;
+  --radius-sm:10px;
+  --shadow:0 1px 1px rgba(88,60,38,.05), 0 10px 26px rgba(88,60,38,.07);
+  --mono:ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --sans:-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB",
+        "Microsoft YaHei", "Source Han Sans SC", "Noto Sans CJK SC", "WenQuanYi Micro Hei", sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  background:
+    radial-gradient(1100px 520px at 8% -12%, #ffe8c4 0%, rgba(255,232,196,0) 62%),
+    radial-gradient(820px 460px at 102% -6%, #ffdccf 0%, rgba(255,220,207,0) 58%),
+    var(--cream);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:15px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+.page{max-width:900px;margin:0 auto;padding:30px 18px 70px}
+
+/* ---------- 卡片与票据 ---------- */
+.card{
+  position:relative;
+  background:var(--paper);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  padding:20px 22px;
+  margin-bottom:14px;
+}
+.hero{padding-top:22px}
+.hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.mark{
+  flex:0 0 auto;width:46px;height:46px;border-radius:13px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;font-weight:700;color:#fff8ec;
+  background:linear-gradient(150deg,#e8a63c 0%,#d3662f 55%,#c8402a 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35), 0 4px 12px rgba(200,64,42,.22);
+}
+.brand h1{margin:0;font-size:25px;line-height:1.2;letter-spacing:.4px;font-weight:800}
+.tagline{margin:2px 0 0;font-size:13.5px;color:var(--ink-2);letter-spacing:1.4px}
+.badges{display:flex;flex-wrap:wrap;gap:7px;justify-content:flex-end;padding-top:3px}
+
+.badge{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:12.5px;line-height:1;padding:7px 10px;border-radius:999px;
+  border:1px solid var(--line-strong);background:#fff;color:var(--ink-2);white-space:nowrap;
+}
+.badge::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.75}
+.badge-live{background:var(--green-soft);border-color:#bcdcc7;color:var(--green)}
+.badge-replay{background:var(--blue-soft);border-color:#c8d6de;color:var(--blue)}
+.badge-fic{
+  background:#fde3c6;border-color:#efbf83;color:var(--amber-deep);
+  font-weight:700;letter-spacing:.2px;box-shadow:0 1px 0 rgba(138,75,0,.08)
+}
+.badge-ok{background:var(--green-soft);border-color:#bcdcc7;color:var(--green)}
+.badge-bad{background:var(--red-soft);border-color:#f0b5a9;color:var(--red-deep);font-weight:700}
+.badge-quiet{background:#f6efe2;color:var(--ink-3)}
+
+.perf{
+  position:relative;height:0;margin:18px -22px 0;
+  border-top:2px dashed var(--line-strong);
+}
+.perf::before,.perf::after{
+  content:"";position:absolute;top:-9px;width:16px;height:16px;border-radius:50%;
+  background:var(--cream);border:1px solid var(--line);
+}
+.perf::before{left:-9px}
+.perf::after{right:-9px}
+
+.store{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 14px;margin-top:16px}
+.store-name{font-size:17px;font-weight:700}
+.store-code{
+  font-family:var(--mono);font-size:12px;color:var(--ink-2);
+  background:#f6efe2;border:1px solid var(--line);border-radius:6px;padding:3px 7px;
+}
+.store-meta{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:6px;font-size:12.5px;color:var(--ink-2)}
+.store-meta span b{font-weight:600;color:var(--ink-3);margin-right:4px}
+.dot-sep{color:var(--line-strong)}
+
+.actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:16px;align-items:center}
+button{
+  font-family:inherit;font-size:13.5px;cursor:pointer;
+  border-radius:10px;padding:9px 15px;border:1px solid var(--line-strong);
+  background:#fff;color:var(--ink);transition:transform .06s ease, box-shadow .12s ease;
+}
+button:hover{box-shadow:0 2px 10px rgba(88,60,38,.12)}
+button:active{transform:translateY(1px)}
+button:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+.btn-primary{background:var(--red);border-color:var(--red-deep);color:#fff6ee;font-weight:600}
+.btn-primary:hover{background:var(--red-deep)}
+.copy-status{font-size:12.5px;color:var(--green);min-height:1em}
+
+/* ---------- 警示 ---------- */
+.alert{
+  display:block;
+  background:var(--red-soft);border:1px solid #f0b5a9;border-left:6px solid var(--red);
+  color:#7d2213;border-radius:var(--radius-sm);padding:13px 16px;margin-bottom:14px;
+  font-size:14px;line-height:1.6;
+}
+.alert strong{font-weight:700}
+.alert-title{display:block;font-weight:700;margin-bottom:2px}
+.alert .vi-code{display:block;margin-top:4px}
+
+/* ---------- 方案切换 ---------- */
+.plans{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 14px}
+.plans-label{font-size:12.5px;color:var(--ink-3);letter-spacing:.4px;margin-right:2px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap}
+.tab{
+  display:flex;flex-direction:column;align-items:flex-start;gap:2px;
+  border:1px solid var(--line-strong);background:#fff;border-radius:11px;
+  padding:8px 13px;cursor:pointer;font-family:inherit;text-align:left;
+  color:var(--ink-2);
+}
+.tab .tab-id{font-size:12px;letter-spacing:.6px;color:var(--ink-3);font-weight:600}
+.tab .tab-label{font-size:13.5px;color:var(--ink);font-weight:600;max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tab .tab-meta{
+  font-size:11.5px;color:var(--ink-3);font-variant-numeric:tabular-nums;
+  white-space:nowrap;margin-top:1px;
+}
+.tab[aria-selected="true"]{
+  border-color:var(--red);background:#fff7f0;
+  box-shadow:0 0 0 1px var(--red) inset, 0 3px 10px rgba(200,64,42,.12);
+}
+.tab[aria-selected="true"] .tab-id{color:var(--red-deep)}
+.single-plan{font-size:13.5px;color:var(--ink-2)}
+.single-plan b{color:var(--ink)}
+
+/* ---------- 区块标题 ---------- */
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.sec-title{margin:0;font-size:15.5px;font-weight:700;letter-spacing:.3px}
+.sec-title::before{
+  content:"";display:inline-block;width:4px;height:14px;border-radius:2px;
+  background:linear-gradient(180deg,var(--amber),var(--red));
+  margin-right:8px;vertical-align:-2px;
+}
+.sec-hint{margin:0;font-size:12.5px;color:var(--ink-3)}
+
+/* ---------- 合计 ---------- */
+.summary{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;flex-wrap:wrap}
+.eyebrow{margin:0 0 3px;font-size:11.5px;letter-spacing:1.6px;color:var(--ink-3);text-transform:uppercase}
+.plan-label{margin:0;font-size:19px;font-weight:700;line-height:1.35;max-width:520px}
+.price-block{margin-top:14px}
+.price-label{margin:0;font-size:12.5px;color:var(--ink-2);letter-spacing:.4px}
+.price{
+  margin:2px 0 0;font-family:var(--sans);
+  font-size:46px;line-height:1.05;font-weight:800;letter-spacing:-1.2px;
+  color:var(--ink);font-variant-numeric:tabular-nums;
+}
+.price .cur{font-size:24px;font-weight:700;margin-right:2px;letter-spacing:0;vertical-align:5px}
+.price.pending{font-size:30px;letter-spacing:0;color:var(--red-deep)}
+.price-note{margin:4px 0 0;font-size:12.5px;color:var(--ink-2)}
+.price-note s{color:var(--ink-3)}
+.state-col{display:flex;flex-direction:column;gap:8px;align-items:flex-end;text-align:right}
+.state-pill{
+  font-size:13px;font-weight:700;padding:8px 13px;border-radius:999px;border:1px solid;
+  white-space:nowrap;
+}
+.state-ok{background:var(--green-soft);border-color:#bcdcc7;color:var(--green)}
+.state-bad{background:var(--red-soft);border-color:#f0b5a9;color:var(--red-deep)}
+.state-warn{background:#fdeed6;border-color:#efcb95;color:var(--amber-deep)}
+.state-note{font-size:12px;color:var(--ink-3);max-width:210px;line-height:1.5}
+
+/* ---------- 成员 ---------- */
+.members{display:grid;grid-template-columns:repeat(auto-fit,minmax(212px,1fr));gap:10px}
+.member{
+  border:1px solid var(--line);border-radius:12px;padding:13px 14px 12px;
+  background:var(--paper-2);
+}
+.member.over{border-color:#eeb3a6;background:#fff5f2}
+.member-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.member-id{font-size:13px;font-weight:700;letter-spacing:.4px;color:var(--ink-2)}
+.member-id b{color:var(--ink);font-size:14px}
+.tag{font-size:11px;padding:3px 7px;border-radius:5px;border:1px solid;white-space:nowrap}
+.tag-over{background:var(--red-soft);border-color:#f0b5a9;color:var(--red-deep)}
+.tag-ok{background:var(--green-soft);border-color:#bcdcc7;color:var(--green)}
+.tag-warn{background:#fdeed6;border-color:#efcb95;color:var(--amber-deep)}
+.member-pay{margin:7px 0 0;font-size:27px;font-weight:800;letter-spacing:-.6px;font-variant-numeric:tabular-nums;line-height:1.15}
+.member-pay.pending{font-size:17px;letter-spacing:0;color:var(--red-deep);font-weight:700}
+.member-meta{display:flex;justify-content:space-between;gap:8px;margin-top:6px;font-size:12px;color:var(--ink-2)}
+.member-meta b{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.member-meta b.neg{color:var(--red-deep)}
+
+/* ---------- 明细行 ---------- */
+.people{display:grid;gap:10px}
+.person{border:1px solid var(--line);border-radius:12px;padding:11px 14px}
+.person-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:6px}
+.person-name{font-size:13.5px;font-weight:700}
+.person-sum{font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.item{display:flex;align-items:baseline;gap:8px;padding:5px 0;border-top:1px dashed var(--line)}
+.item:first-of-type{border-top:0}
+.item-name{font-size:14px;min-width:0;overflow-wrap:anywhere}
+.item-qty{font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums;white-space:nowrap}
+.item-note{font-size:12px;color:var(--ink-3);overflow-wrap:anywhere}
+.item-amt{margin-left:auto;font-size:14px;font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:600}
+.item-kind{
+  font-size:10.5px;color:var(--ink-3);border:1px solid var(--line);
+  border-radius:4px;padding:1px 5px;white-space:nowrap;
+}
+.empty-line{font-size:12.5px;color:var(--ink-3);padding:2px 0}
+
+/* ---------- 共享 ---------- */
+.shared-item{border:1px solid #f0dfc0;background:#fffaf0;border-radius:12px;padding:12px 14px;margin-bottom:9px}
+.shared-item:last-child{margin-bottom:0}
+.shared-head{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap}
+.shared-title{font-size:14px;font-weight:700;overflow-wrap:anywhere}
+.share-row{display:flex;gap:9px;align-items:baseline;margin-top:8px;flex-wrap:wrap}
+.share-label{font-size:11px;letter-spacing:1px;color:var(--ink-3);flex:0 0 auto;padding-top:2px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;min-width:0}
+.chip{
+  font-size:12px;padding:4px 9px;border-radius:999px;
+  background:#fff;border:1px solid var(--line-strong);color:var(--ink-2);
+  font-variant-numeric:tabular-nums;
+}
+.chip b{color:var(--ink);font-weight:700}
+
+/* ---------- 表格 ---------- */
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{text-align:left;padding:9px 8px;vertical-align:top}
+thead th{
+  font-size:11.5px;letter-spacing:1px;color:var(--ink-3);font-weight:600;
+  border-bottom:1px solid var(--line-strong);white-space:nowrap;
+}
+tbody tr{border-bottom:1px dashed var(--line)}
+tbody tr:last-child{border-bottom:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+td.amt{font-weight:600}
+.neg{color:var(--red-deep)}
+.split-list{display:flex;flex-wrap:wrap;gap:5px 12px;color:var(--ink-2);font-size:12.5px}
+.split-list b{color:var(--ink);font-variant-numeric:tabular-nums;font-weight:600}
+.row-total td{border-top:2px solid var(--line-strong);font-weight:700}
+.balance{font-size:12.5px;color:var(--ink-2);margin:10px 0 0;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.balance .dot{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block}
+.balance.bad .dot{background:var(--red)}
+
+/* ---------- 取舍 / 风险 ---------- */
+.blocks{display:grid;gap:14px}
+.block-title{
+  margin:0 0 6px;font-size:12.5px;font-weight:700;letter-spacing:1px;color:var(--ink-3);
+}
+ul.plain{margin:0;padding:0;list-style:none;display:grid;gap:7px}
+ul.plain li{
+  position:relative;padding-left:16px;font-size:13.5px;line-height:1.65;overflow-wrap:anywhere;
+}
+ul.plain li::before{
+  content:"";position:absolute;left:2px;top:9px;width:6px;height:6px;border-radius:2px;
+  background:var(--amber);transform:rotate(45deg);
+}
+ul.viol li::before{background:var(--red);border-radius:50%;transform:none}
+ul.empty li{color:var(--ink-3)}
+ul.empty li::before{background:var(--line-strong)}
+.vi-code{font-family:var(--mono);font-size:11.5px;color:var(--ink-3)}
+.vi-extra{display:block;font-size:12.5px;color:var(--ink-2);margin-top:1px}
+
+/* ---------- 折叠 ---------- */
+details.card{padding:0;overflow:hidden}
+details.card > summary{
+  cursor:pointer;padding:15px 22px;font-size:14px;font-weight:700;letter-spacing:.3px;
+  list-style:none;display:flex;align-items:center;gap:9px;color:var(--ink);
+}
+details.card > summary::-webkit-details-marker{display:none}
+details.card > summary::before{
+  content:"＋";font-weight:400;color:var(--red);font-size:14px;width:14px;
+}
+details.card[open] > summary::before{content:"－"}
+details.card[open] > summary{border-bottom:1px dashed var(--line)}
+.details-body{padding:16px 22px 20px}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:6px 16px;font-size:12.5px;margin:0 0 14px}
+.kv dt{color:var(--ink-3)}
+.kv dd{margin:0;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.kv dd.mono{font-family:var(--mono);font-size:12px}
+.sub-note{font-size:12.5px;color:var(--ink-2);margin:0 0 12px;overflow-wrap:anywhere}
+.sub-head{margin:14px 0 6px;font-size:12px;letter-spacing:1px;color:var(--ink-3);font-weight:700}
+.muted{color:var(--ink-3)}
+.notes-card ul.plain li::before{background:var(--line-strong);border-radius:50%;transform:none}
+
+/* ---------- 页脚 ---------- */
+.foot{
+  margin-top:18px;font-size:12px;color:var(--ink-3);line-height:1.7;
+  display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
+}
+.foot .stamp{font-family:var(--mono);font-size:11px}
+
+/* ---------- 响应式 ---------- */
+@media (max-width:620px){
+  .page{padding:18px 12px 60px}
+  .card{padding:16px 15px}
+  .perf{margin:16px -15px 0}
+  .price{font-size:38px}
+  .plan-label{font-size:17px}
+  .badges{justify-content:flex-start}
+  .state-col{align-items:flex-start;text-align:left}
+  .tab .tab-label{max-width:180px}
+}
+
+/* ---------- 打印 ---------- */
+@page{margin:14mm}
+@media print{
+  body{background:#fff !important;color:#000;font-size:11.5pt}
+  .page{max-width:none;padding:0}
+  .no-print{display:none !important}
+  .card,details.card{
+    box-shadow:none !important;border:1px solid #cfcfcf !important;background:#fff !important;
+    break-inside:avoid;page-break-inside:avoid;margin-bottom:8pt;
+  }
+  .mark{
+    background:#eee !important;color:#333 !important;box-shadow:none !important;
+    border:1px solid #999;
+  }
+  .badge,.state-pill,.tag,.chip,.item-kind{
+    background:#fff !important;border-color:#999 !important;color:#000 !important;
+  }
+  .badge-fic,.badge-bad{font-weight:700 !important;border-width:2px !important}
+  .alert{background:#fff !important;border:2px solid #000 !important;color:#000 !important}
+  details.card > summary{padding:8pt 11pt}
+  details.card > summary::before{content:"";}
+  .sec-title::before{background:#666 !important}
+  ul.plain li::before{background:#666 !important}
+  a{text-decoration:none;color:#000}
+}
+</style>
+</head>
+<body>
+<div class="page" id="root">
+  <header class="hero card">
+    <div class="hero-top">
+      <div class="brand">
+        <span class="mark" aria-hidden="true">麦</span>
+        <div>
+          <h1>麦单合伙人</h1>
+          <p class="tagline">合点一单，各自有数</p>
+        </div>
+      </div>
+      <div class="badges" id="badges"></div>
+    </div>
+    <div class="perf" aria-hidden="true"></div>
+    <div id="storebar"></div>
+    <div class="actions no-print">
+      <button type="button" class="btn-primary" id="btn-copy">复制纯文本点单清单</button>
+      <button type="button" id="btn-print">打印 / 存为 PDF</button>
+      <span class="copy-status" id="copy-status" role="status" aria-live="polite"></span>
+    </div>
+  </header>
+
+  <div id="alertbar" role="alert"></div>
+  <section class="card plans" id="planNav" aria-label="方案切换"></section>
+  <div id="planBody"></div>
+  <div id="notesWrap"></div>
+  <div id="debugWrap"></div>
+
+  <footer class="foot">
+    <span>金额为按官方核价结果展示，页面不做二次计算。</span>
+    <span class="stamp" id="stamp"></span>
+  </footer>
+</div>
+
+<noscript>
+  <div style="max-width:900px;margin:0 auto;padding:0 18px 40px;color:#7d2213;">
+    本页需要浏览器启用 JavaScript 才能显示点单卡内容（数据已内嵌在 HTML 中，不会联网获取）。
+  </div>
+</noscript>
+
+<script type="application/json" id="meal-mates-data">__MEAL_MATES_DATA__</script>
+<script>
+(function () {
+  'use strict';
+
+  var MODE_LABELS = {
+    live:      { text: '本次实时核价', cls: 'badge badge-live' },
+    replay:    { text: '历史回放',     cls: 'badge badge-replay' },
+    fictional: { text: '虚构数据，仅用于功能演示', cls: 'badge badge-fic' }
+  };
+
+  var QUOTE_LABELS = {
+    verified:   { text: '报价已核验', cls: 'badge badge-ok' },
+    stale:      { text: '报价已过期', cls: 'badge badge-bad' },
+    failed:     { text: '核价失败',   cls: 'badge badge-bad' },
+    unverified: { text: '报价未核验', cls: 'badge badge-bad' }
+  };
+
+  var QUOTE_BANNER = {
+    failed:     '本次核价失败，页面金额一律显示为「待确认」，请勿据此付款。',
+    stale:      '报价已过期，价格可能已变动，页面金额一律显示为「待确认」，请重新核价。',
+    unverified: '报价未通过核验，页面金额一律显示为「待确认」，请勿据此付款。'
+  };
+
+  var KIND_LABELS = {
+    main: '主食', drink: '饮料', side: '小食', combo: '套餐', other: '其他'
+  };
+
+  var VIOLATION_LABELS = {
+    QUOTE_NOT_VERIFIED:   '报价未通过核验',
+    SHARING_RULE_PENDING: '分账规则尚未确认',
+    MEMBER_OVER_BUDGET:   '成员应付超出预算',
+    BUDGET_MISSING:       '成员未设置预算',
+    PRICE_MISSING:        '商品价格缺失',
+    UNBALANCED_TOTAL:     '分账合计与官方总额不一致',
+    UNCLEAR_PRICE_BASIS:  '商品部分与总额的差额无法解释',
+    FEE_SPLIT_PENDING:    '存在额外费用且分摊方式未确定',
+    MAIN_MISSING:         '成员缺少主食',
+    DRINK_MISSING:        '要求饮料的成员缺少饮料',
+    EXCLUDED_ITEM:        '包含被明确排除的商品',
+    COMBO_UNCONFIRMED:    '套餐组成未确认即拆价',
+    SHARE_INELIGIBLE:     '共享名单包含不愿分摊的成员',
+    DUPLICATE_DRINK:      '套餐已含饮料仍被重复计入'
+  };
+
+  var root = document.getElementById('root');
+  var elBadges = document.getElementById('badges');
+  var elStore = document.getElementById('storebar');
+  var elAlert = document.getElementById('alertbar');
+  var elNav = document.getElementById('planNav');
+  var elPlan = document.getElementById('planBody');
+  var elNotes = document.getElementById('notesWrap');
+  var elDebug = document.getElementById('debugWrap');
+  var elStamp = document.getElementById('stamp');
+  var elCopyStatus = document.getElementById('copy-status');
+
+  var payload = readPayload();
+  var state = { index: 0 };
+  var plans = [];
+
+  /* ---------- 基础工具：只用 textContent，绝不拼接 HTML ---------- */
+  function readPayload() {
+    var node = document.getElementById('meal-mates-data');
+    if (!node) return null;
+    try { return JSON.parse(node.textContent || 'null'); }
+    catch (err) { return null; }
+  }
+
+  function mk(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text !== undefined && text !== null && text !== '') n.textContent = String(text);
+    return n;
+  }
+
+  function put(parent, tag, cls, text) {
+    var n = mk(tag, cls, text);
+    parent.appendChild(n);
+    return n;
+  }
+
+  function clear(node) {
+    while (node && node.firstChild) node.removeChild(node.firstChild);
+  }
+
+  function txt(value, fallback) {
+    if (value === undefined || value === null || value === '') return fallback || '未提供';
+    return String(value);
+  }
+
+  function num(value) {
+    var n = Number(value);
+    return isFinite(n) ? n : null;
+  }
+
+  function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+
+  function fmtTime(iso) {
+    if (!iso) return '时间未提供';
+    var m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?(Z|[+-]\d{2}:?\d{2})?$/
+      .exec(String(iso).trim());
+    if (!m) return String(iso);
+    var tz = m[7];
+    var tzText = '时区未标注';
+    if (tz === 'Z') {
+      tzText = 'UTC+00:00';
+    } else if (tz) {
+      var sign = tz.charAt(0);
+      var body = tz.slice(1).replace(':', '');
+      tzText = 'UTC' + sign + body.slice(0, 2) + ':' + body.slice(2);
+    }
+    return m[1] + '年' + m[2] + '月' + m[3] + '日 ' + m[4] + ':' + m[5] + '（' + tzText + '）';
+  }
+
+  function plan() { return plans[state.index] || {}; }
+  function quote() { return plan().quote || {}; }
+  function lines() { var p = plan(); return Array.isArray(p.lines) ? p.lines : []; }
+  function alloc() { var a = plan().allocation; return (a && typeof a === 'object') ? a : {}; }
+
+  function shareConfirmed() {
+    var sr = payload && payload.sharing_rule;
+    return !sr || sr.status === 'confirmed';
+  }
+  function quoteVerified() { return quote().status === 'verified'; }
+  function amountsTrusted() { return quoteVerified(); }
+
+  function yuan(cents) { return (num(cents) / 100).toFixed(2); }
+
+  function planVerified(p) { return !!(p && p.quote && p.quote.status === 'verified'); }
+
+  /* 方案标签用：按该方案自身的报价状态决定是否可展示金额 */
+  function planMoney(p, cents) {
+    if (!planVerified(p)) return '待确认';
+    if (cents === null || cents === undefined || num(cents) === null) return '待确认';
+    return '¥' + yuan(cents);
+  }
+
+  function planStateText(p) {
+    var al = (p && p.allocation) || {};
+    if (!planVerified(p)) return '报价未核验';
+    if (al.method === 'blocked' || !shareConfirmed()) return '分账待确认';
+    if (p.feasible === true) {
+      var ms = Array.isArray(al.members) ? al.members : [];
+      for (var i = 0; i < ms.length; i++) {
+        if (ms[i] && ms[i].over_budget === true) return '有人超预算';
+      }
+      return '全员在预算内';
+    }
+    return '存在未满足项';
+  }
+
+  function money(cents) {
+    if (!amountsTrusted()) return '待确认';
+    if (cents === null || cents === undefined) return '待确认';
+    if (num(cents) === null) return '待确认';
+    return '¥' + yuan(cents);
+  }
+
+  function signedMoney(cents) {
+    if (!amountsTrusted()) return '待确认';
+    if (cents === null || cents === undefined || num(cents) === null) return '待确认';
+    var v = num(cents);
+    return (v < 0 ? '-¥' : '¥') + yuan(Math.abs(v));
+  }
+
+  function payableText(cents, overBudget) {
+    if (cents === null || cents === undefined) return '分账待确认';
+    if (!amountsTrusted()) return '待确认';
+    return '¥' + yuan(cents);
+  }
+
+  function pendingReason() {
+    if (!quoteVerified()) return '报价状态：' + txt(quote().status, '未知');
+    if (alloc().method === 'blocked') return '分账方式：blocked';
+    if (!shareConfirmed()) return '分账规则：待确认';
+    return '';
+  }
+
+  /* ---------- 数据访问 ---------- */
+  function membersVM() {
+    var a = alloc();
+    var list = Array.isArray(a.members) ? a.members : [];
+    if (list.length) return list;
+    var base = Array.isArray(payload.members) ? payload.members : [];
+    var out = [];
+    for (var i = 0; i < base.length; i++) {
+      out.push({
+        id: base[i] && base[i].id,
+        payable_cents: null,
+        budget_cents: base[i] ? base[i].budget_cents : null,
+        remaining_cents: null,
+        over_budget: false
+      });
+    }
+    return out;
+  }
+
+  function memberSpec(id) {
+    var base = (payload && Array.isArray(payload.members)) ? payload.members : [];
+    for (var i = 0; i < base.length; i++) {
+      if (base[i] && String(base[i].id) === String(id)) return base[i];
+    }
+    return null;
+  }
+
+  function isShared(line) {
+    return line && (line.owner === null || line.owner === undefined);
+  }
+
+  function allocLine(lineId) {
+    var arr = Array.isArray(alloc().lines) ? alloc().lines : [];
+    for (var i = 0; i < arr.length; i++) {
+      if (arr[i] && String(arr[i].line_id) === String(lineId)) return arr[i];
+    }
+    return null;
+  }
+
+  function sharesOf(lineId) {
+    var row = allocLine(lineId);
+    return (row && Array.isArray(row.shares)) ? row.shares : [];
+  }
+
+  function sharesInline(parent, shares) {
+    var wrap = put(parent, 'div', 'split-list');
+    if (!shares.length) {
+      put(wrap, 'span', 'muted', '分摊待确认');
+      return wrap;
+    }
+    for (var i = 0; i < shares.length; i++) {
+      var s = shares[i] || {};
+      var span = put(wrap, 'span', null, '成员 ' + txt(s.member) + ' ');
+      put(span, 'b', null, signedMoney(s.cents));
+    }
+    return wrap;
+  }
+
+  /* ---------- 顶栏 ---------- */
+  function renderHero() {
+    clear(elBadges);
+    var mode = MODE_LABELS[payload.data_mode];
+    if (mode) {
+      put(elBadges, 'span', mode.cls, mode.text);
+    } else {
+      put(elBadges, 'span', 'badge badge-quiet', '数据来源未标注');
+    }
+
+    var qs = quote().status;
+    var ql = QUOTE_LABELS[qs];
+    if (ql) {
+      put(elBadges, 'span', ql.cls, ql.text);
+    } else {
+      put(elBadges, 'span', 'badge badge-bad', '报价状态未知');
+    }
+
+    var allocNote = alloc().method === 'blocked' || !shareConfirmed();
+    if (allocNote) put(elBadges, 'span', 'badge badge-quiet', '分账待确认');
+
+    if (plans.length > 1) {
+      put(elBadges, 'span', 'badge badge-quiet', plans.length + ' 套方案');
+    }
+
+    /* 门店信息 */
+    clear(elStore);
+    var store = payload.store || {};
+    var top = put(elStore, 'div', 'store');
+    put(top, 'span', 'store-name', txt(store.store_name, '门店未提供'));
+    put(top, 'span', 'store-code', txt(store.store_code, '编码未提供'));
+
+    var known = [];
+    if (store.city) known.push(String(store.city));
+    if (store.area) known.push(String(store.area));
+    var meta = put(elStore, 'div', 'store-meta');
+    if (known.length) {
+      var loc = put(meta, 'span');
+      put(loc, 'b', null, '位置');
+      put(loc, 'span', null, known.join(' · '));
+    }
+    var quotedAt = quote().quoted_at || store.queried_at;
+    var t = put(meta, 'span');
+    put(t, 'b', null, '核价时间');
+    put(t, 'span', null, fmtTime(quotedAt));
+    var om = put(meta, 'span');
+    put(om, 'b', null, '取餐方式');
+    put(om, 'span', null, (payload.order && payload.order.mode === 'pickup') ? '到店自取' : txt(payload.order && payload.order.mode, '未标注'));
+
+    /* 警示条 */
+    clear(elAlert);
+    if (!quoteVerified()) {
+      var status = qs || 'unknown';
+      var box = put(elAlert, 'div', 'alert');
+      put(box, 'span', 'alert-title', '报价不可信：' + txt(QUOTE_LABELS[status] ? QUOTE_LABELS[status].text : '状态未知'));
+      put(box, 'span', null, QUOTE_BANNER[status] || '报价状态不是 verified，页面金额一律显示为「待确认」。');
+      box.appendChild(mk('span', 'vi-code', ' quote.status = ' + status));
+    } else if (alloc().method === 'blocked' || !shareConfirmed()) {
+      var box2 = put(elAlert, 'div', 'alert');
+      put(box2, 'span', 'alert-title', '分账尚未确认');
+      put(box2, 'span', null, '方案已核价，但分摊方式未确认，个人应付显示为「分账待确认」。');
+    }
+  }
+
+  /* ---------- 方案切换 ---------- */
+  function renderNav() {
+    clear(elNav);
+    if (plans.length <= 1) {
+      var p0 = plans[0] || {};
+      put(elNav, 'span', 'plans-label', '当前方案');
+      put(elNav, 'p', 'single-plan', '方案 ' + txt(p0.plan_id) + ' · ' + txt(p0.label, '未命名方案'));
+      put(elNav, 'p', 'single-plan',
+        planMoney(p0, (p0.quote || {}).total_cents) + ' · ' + planStateText(p0));
+      return;
+    }
+    put(elNav, 'span', 'plans-label', '选择方案');
+    var tabs = put(elNav, 'div', 'tabs');
+    tabs.setAttribute('role', 'tablist');
+    for (var i = 0; i < plans.length; i++) {
+      var p = plans[i] || {};
+      var b = mk('button', 'tab');
+      b.type = 'button';
+      b.setAttribute('role', 'tab');
+      b.setAttribute('data-index', String(i));
+      b.id = 'tab-' + i;
+      b.setAttribute('aria-selected', i === state.index ? 'true' : 'false');
+      put(b, 'span', 'tab-id', txt(p.plan_id));
+      put(b, 'span', 'tab-label', txt(p.label, '未命名方案'));
+      var meta = put(b, 'span', 'tab-meta');
+      meta.textContent = planMoney(p, (p.quote || {}).total_cents) + ' · ' + planStateText(p);
+      b.addEventListener('click', onTabClick);
+      tabs.appendChild(b);
+    }
+  }
+
+  function onTabClick(ev) {
+    var idx = Number(ev.currentTarget.getAttribute('data-index'));
+    if (!isFinite(idx) || idx === state.index) return;
+    selectPlan(idx);
+  }
+
+  function selectPlan(idx) {
+    state.index = idx;
+    var tabs = elNav.querySelectorAll('.tab');
+    for (var i = 0; i < tabs.length; i++) {
+      tabs[i].setAttribute('aria-selected', i === idx ? 'true' : 'false');
+    }
+    renderHero();
+    renderPlan();
+    try { elPlan.scrollIntoView({ block: 'nearest' }); } catch (e) { /* 忽略 */ }
+  }
+
+  /* ---------- 方案主体 ---------- */
+  function sectionHead(sec, title, hint) {
+    var head = put(sec, 'div', 'sec-head');
+    put(head, 'h2', 'sec-title', title);
+    if (hint) put(head, 'p', 'sec-hint', hint);
+    return head;
+  }
+
+  function renderPlan() {
+    clear(elPlan);
+    var p = plan();
+    var a = alloc();
+    elPlan.appendChild(buildSummary(p));
+    elPlan.appendChild(buildMembers(p));
+    elPlan.appendChild(buildPeople(p));
+    elPlan.appendChild(buildShared(p));
+    elPlan.appendChild(buildAllocation(p));
+    elPlan.appendChild(buildFindings(p));
+    elPlan.appendChild(buildQuoteNote(p));
+  }
+
+  function buildSummary(p) {
+    var a = alloc();
+    var sec = mk('section', 'card');
+    var wrap = put(sec, 'div', 'summary');
+
+    var left = put(wrap, 'div');
+    var topLine = put(left, 'p', 'eyebrow', '方案 ' + txt(p.plan_id));
+    if (payload.best_plan_id && String(payload.best_plan_id) === String(p.plan_id)) {
+      topLine.textContent = '方案 ' + txt(p.plan_id) + ' · 首选';
+    }
+    put(left, 'h2', 'plan-label', txt(p.label, '未命名方案'));
+
+    var priceBlock = put(left, 'div', 'price-block');
+    put(priceBlock, 'p', 'price-label', '本单合计（官方核价）');
+    var total = num(quote().total_cents);
+    var priceEl = put(priceBlock, 'p', 'price');
+    if (!amountsTrusted() || total === null) {
+      priceEl.className = 'price pending';
+      priceEl.textContent = '待确认';
+      if (!amountsTrusted()) put(priceBlock, 'p', 'price-note', '报价未通过核验，金额待确认（' + txt(quote().status, '状态未知') + '）');
+      else put(priceBlock, 'p', 'price-note', '官方未返回总额。');
+    } else {
+      priceEl.appendChild(mk('span', 'cur', '¥'));
+      priceEl.appendChild(document.createTextNode(yuan(total)));
+      var note = put(priceBlock, 'p', 'price-note');
+      note.textContent = '商品 ' + money(quote().product_cents)
+        + ' · 费用 ' + money(quote().fee_cents)
+        + ' · 优惠 ' + (num(quote().discount_cents) ? '-' + money(quote().discount_cents) : money(0));
+    }
+
+    var right = put(wrap, 'div', 'state-col');
+    var feasible = p.feasible === true;
+    var pill = put(right, 'span', 'state-pill');
+    var noteLine = '';
+    if (!amountsTrusted()) {
+      pill.className = 'state-pill state-bad';
+      pill.textContent = '金额待确认';
+      noteLine = '先完成核价，再判断预算与分账。';
+    } else if (a.method === 'blocked' || !shareConfirmed()) {
+      pill.className = 'state-pill state-warn';
+      pill.textContent = '分账待确认';
+      noteLine = '分账规则未确认，个人应付暂不可用。';
+    } else if (feasible) {
+      pill.className = 'state-pill state-ok';
+      pill.textContent = '全员在预算内';
+      noteLine = '已核对分账合计与官方总额。';
+    } else {
+      pill.className = 'state-pill state-bad';
+      pill.textContent = '存在未满足项';
+      noteLine = '详见下方冲突与未满足项。';
+    }
+    if (noteLine) put(right, 'p', 'state-note', noteLine);
+
+    var bal = a.total_check || {};
+    if (bal && bal.balanced === false) {
+      put(right, 'span', 'tag tag-warn', '分账合计与总额不符');
+    }
+    return sec;
+  }
+
+  function buildMembers() {
+    var sec = mk('section', 'card');
+    sectionHead(sec, '每人应付与剩余预算', '预算为各自设定，剩余为预算减去应付');
+    var list = membersVM();
+    var grid = put(sec, 'div', 'members');
+    if (!list.length) {
+      put(sec, 'p', 'empty-line', '没有成员分账数据。');
+      return sec;
+    }
+    for (var i = 0; i < list.length; i++) {
+      var m = list[i] || {};
+      var over = m.over_budget === true;
+      var cardBox = put(grid, 'div', 'member' + (over ? ' over' : ''));
+
+      var head = put(cardBox, 'div', 'member-head');
+      var idEl = put(head, 'span', 'member-id', '成员 ');
+      put(idEl, 'b', null, txt(m.id));
+      var spec = memberSpec(m.id);
+      if (spec && spec.share_willing === false) put(head, 'span', 'tag tag-warn', '不分摊共享');
+      if (spec && spec.main_required === true) put(head, 'span', 'tag tag-warn', '需主食');
+
+      var pay = num(m.payable_cents);
+      var payEl = put(cardBox, 'p', 'member-pay');
+      if (m.payable_cents === null || m.payable_cents === undefined) {
+        payEl.className = 'member-pay pending';
+        payEl.textContent = '分账待确认';
+        var reason = pendingReason();
+        if (reason) put(cardBox, 'p', 'member-meta', reason);
+      } else if (!amountsTrusted()) {
+        payEl.className = 'member-pay pending';
+        payEl.textContent = '待确认';
+      } else {
+        payEl.textContent = '¥' + yuan(pay);
+      }
+
+      var meta = put(cardBox, 'div', 'member-meta');
+      var b1 = put(meta, 'span', null, '预算 ');
+      put(b1, 'b', null, money(m.budget_cents));
+      var rem = num(m.remaining_cents);
+      var b2 = put(meta, 'span', null, '剩余 ');
+      var remEl = put(b2, 'b', rem !== null && rem < 0 ? 'neg' : null, signedMoney(m.remaining_cents));
+
+      if (over) put(cardBox, 'span', 'tag tag-over', '超出预算');
+    }
+    return sec;
+  }
+
+  function buildPeople() {
+    var sec = mk('section', 'card');
+    sectionHead(sec, '每人拿了什么', '个人计费行，不摊共享与优惠');
+    var people = put(sec, 'div', 'people');
+    var list = membersVM();
+    var arr = lines();
+    var any = false;
+
+    for (var i = 0; i < list.length; i++) {
+      var m = list[i] || {};
+      var mine = [];
+      for (var j = 0; j < arr.length; j++) {
+        var ln = arr[j];
+        if (ln && !isShared(ln) && String(ln.owner) === String(m.id)) mine.push(ln);
+      }
+      if (!mine.length) continue;
+      any = true;
+      var box = put(people, 'div', 'person');
+      var head = put(box, 'div', 'person-head');
+      put(head, 'span', 'person-name', '成员 ' + txt(m.id));
+      var sum = 0, hasNull = false;
+      for (var k = 0; k < mine.length; k++) {
+        var c = num(mine[k].line_total_cents);
+        if (c === null) hasNull = true; else sum += c;
+      }
+      put(head, 'span', 'person-sum', '行金额 ' + (hasNull ? '含缺价行' : money(sum)));
+      for (var x = 0; x < mine.length; x++) {
+        appendLineRow(box, mine[x], true);
+      }
+    }
+
+    if (!any) put(sec, 'p', 'empty-line', '本方案没有个人计费行（全部为共享品）。');
+    return sec;
+  }
+
+  function appendLineRow(parent, line, withOwner) {
+    var row = put(parent, 'div', 'item');
+    var nameWrap = put(row, 'span');
+    put(nameWrap, 'span', 'item-name', txt(line.name, '未命名商品'));
+    if (line.qty !== undefined && line.qty !== null) put(row, 'span', 'item-qty', '×' + txt(line.qty));
+    var kind = KIND_LABELS[line.kind];
+    if (kind) put(row, 'span', 'item-kind', kind);
+    if (line.price_state === 'missing') put(row, 'span', 'tag tag-warn', '缺价');
+    var amt = put(row, 'span', 'item-amt');
+    if (line.price_state === 'missing' || line.line_total_cents === null || line.line_total_cents === undefined) {
+      amt.textContent = '价格待确认';
+      amt.className = 'item-amt neg';
+    } else {
+      amt.textContent = money(line.line_total_cents);
+    }
+    if (line.note) {
+      var noteRow = put(parent, 'div', 'item');
+      put(noteRow, 'span', 'item-note', '备注：' + String(line.note));
+    }
+    return row;
+  }
+
+  function buildShared() {
+    var sec = mk('section', 'card');
+    sectionHead(sec, '共享品与参与分摊的人', '只列共享行；分摊金额来自分账结果');
+    var arr = lines();
+    var shared = [];
+    for (var i = 0; i < arr.length; i++) { if (isShared(arr[i])) shared.push(arr[i]); }
+
+    if (!shared.length) {
+      put(sec, 'p', 'empty-line', '本方案没有共享品。');
+      return sec;
+    }
+
+    for (var j = 0; j < shared.length; j++) {
+      var ln = shared[j];
+      var box = put(sec, 'div', 'shared-item');
+      var head = put(box, 'div', 'shared-head');
+      put(head, 'span', 'shared-title', txt(ln.name, '未命名商品'));
+      put(head, 'span', 'item-qty', '×' + txt(ln.qty, 1));
+      var kindS = KIND_LABELS[ln.kind];
+      if (kindS) put(head, 'span', 'item-kind', kindS);
+      put(head, 'span', 'item-amt', ln.price_state === 'missing' ? '价格待确认' : money(ln.line_total_cents));
+
+      var who = Array.isArray(ln.shared_by) ? ln.shared_by : [];
+      var whoRow = put(box, 'div', 'share-row');
+      put(whoRow, 'span', 'share-label', '参与人');
+      var chips = put(whoRow, 'div', 'chips');
+      if (!who.length) {
+        put(chips, 'span', 'chip', '未提供');
+      } else {
+        for (var k = 0; k < who.length; k++) {
+          put(chips, 'span', 'chip', '成员 ' + txt(who[k]));
+        }
+      }
+      if (ln.note) put(box, 'p', 'item-note', '备注：' + String(ln.note));
+
+      var shareRow = put(box, 'div', 'share-row');
+      put(shareRow, 'span', 'share-label', '分摊');
+      var shareWrap = put(shareRow, 'div', 'chips');
+      var shares = sharesOf(ln.line_id);
+      if (!shares.length) {
+        put(shareWrap, 'span', 'chip', '待确认');
+      } else {
+        for (var s = 0; s < shares.length; s++) {
+          var sp = shares[s] || {};
+          var chip = put(shareWrap, 'span', 'chip', '成员 ' + txt(sp.member) + ' ');
+          put(chip, 'b', null, signedMoney(sp.cents));
+        }
+      }
+    }
+    return sec;
+  }
+
+  function buildAllocation() {
+    var sec = mk('section', 'card');
+    sectionHead(sec, '分摊明细', '行金额 / 费用 / 折扣，均为分账结果原值');
+    var a = alloc();
+    var notes = a.notes;
+    if (notes) put(sec, 'p', 'sub-note', String(notes));
+
+    var wrap = put(sec, 'div', 'table-wrap');
+    var table = put(wrap, 'table');
+    var thead = put(table, 'thead');
+    var hr = put(thead, 'tr');
+    put(hr, 'th', null, '项目');
+    put(hr, 'th', 'num', '金额');
+    put(hr, 'th', null, '分摊');
+
+    var tbody = put(table, 'tbody');
+    var arr = lines();
+    var allocLines = Array.isArray(a.lines) ? a.lines : [];
+
+    for (var i = 0; i < allocLines.length; i++) {
+      var row = allocLines[i] || {};
+      var line = null;
+      for (var j = 0; j < arr.length; j++) {
+        if (arr[j] && String(arr[j].line_id) === String(row.line_id)) { line = arr[j]; break; }
+      }
+      var tr = put(tbody, 'tr');
+      var name = txt(line ? line.name : null, '行 ' + txt(row.line_id));
+      put(tr, 'td', null, name);
+      put(tr, 'td', 'num amt', signedMoney(row.allocated_cents));
+      var tdS = put(tr, 'td');
+      sharesInline(tdS, Array.isArray(row.shares) ? row.shares : []);
+    }
+
+    var fees = Array.isArray(a.fees) ? a.fees : [];
+    for (var f = 0; f < fees.length; f++) {
+      var fee = fees[f] || {};
+      var trf = put(tbody, 'tr');
+      put(trf, 'td', null, '费用：' + txt(fee.label, '费用'));
+      put(trf, 'td', 'num amt', signedMoney(fee.cents));
+      sharesInline(put(trf, 'td'), Array.isArray(fee.split) ? fee.split : []);
+    }
+
+    var discounts = Array.isArray(a.discounts) ? a.discounts : [];
+    for (var d = 0; d < discounts.length; d++) {
+      var dis = discounts[d] || {};
+      var trd = put(tbody, 'tr');
+      put(trd, 'td', null, '折扣：' + txt(dis.label, '整单优惠'));
+      put(trd, 'td', 'num amt neg', signedMoney(dis.cents));
+      sharesInline(put(trd, 'td'), Array.isArray(dis.split) ? dis.split : []);
+    }
+
+    if (!allocLines.length && !fees.length && !discounts.length) {
+      var trEmpty = put(tbody, 'tr');
+      var tdEmpty = put(trEmpty, 'td', null, '分账结果为空（可能处于 blocked 状态）。');
+      tdEmpty.colSpan = 3;
+    }
+
+    var check = a.total_check || {};
+    var trCheck = put(tbody, 'tr', 'row-total');
+    put(trCheck, 'td', null, '分账合计');
+    put(trCheck, 'td', 'num', money(check.sum_payable_cents));
+    put(trCheck, 'td', null, '官方总额 ' + money(check.quote_total_cents));
+
+    var bal = put(sec, 'p', 'balance' + (check.balanced === false ? ' bad' : ''));
+    put(bal, 'span', 'dot');
+    if (check.balanced === true) {
+      put(bal, 'span', null, '分账合计与官方总额一致，未做额外加总。');
+    } else if (check.balanced === false) {
+      put(bal, 'span', null, '分账合计与官方总额不一致，请联系核对，勿据此付款。');
+    } else {
+      put(bal, 'span', null, '未提供合计核对结果。');
+    }
+    if (discounts.length) {
+      put(sec, 'p', 'sub-note muted', '折扣行为分账结果原值，是否已从行金额中扣除以该方案的分账说明为准；本页不做重算。');
+    }
+    return sec;
+  }
+
+  function listBlock(parent, title, items, cls) {
+    var box = put(parent, 'div');
+    put(box, 'h3', 'block-title', title);
+    var ul = put(box, 'ul', 'plain' + (cls ? ' ' + cls : '') + (items.length ? '' : ' empty'));
+    if (!items.length) {
+      put(ul, 'li', null, '暂无');
+      return box;
+    }
+    for (var i = 0; i < items.length; i++) put(ul, 'li', null, items[i]);
+    return box;
+  }
+
+  function violationText(v) {
+    if (v === null || v === undefined) return '未知问题';
+    if (typeof v === 'string') {
+      var zh = VIOLATION_LABELS[v];
+      return zh ? zh + '（' + v + '）' : v;
+    }
+    if (typeof v !== 'object') return String(v);
+    var code = v.code ? String(v.code) : '';
+    var label = VIOLATION_LABELS[code] || '未登记的问题类型';
+    var parts = [label];
+    if (v.member !== undefined && v.member !== null) parts.push('成员 ' + String(v.member));
+    if (v.line_id !== undefined && v.line_id !== null) parts.push('行 ' + String(v.line_id));
+    var extra = v.detail || v.message || v.note || v.reason;
+    if (extra) parts.push(String(extra));
+    return parts.join(' · ');
+  }
+
+  function buildFindings(p) {
+    var sec = mk('section', 'card');
+    sectionHead(sec, '取舍、未满足与冲突', '冲突项会阻断「全员在预算内」的判断');
+    var wrap = put(sec, 'div', 'blocks');
+
+    var tradeoffs = Array.isArray(p.tradeoffs) ? p.tradeoffs.map(String) : [];
+    var unmet = Array.isArray(p.unmet) ? p.unmet.map(String) : [];
+    var violations = Array.isArray(p.violations) ? p.violations.map(violationText) : [];
+
+    listBlock(wrap, '取舍说明', tradeoffs);
+    listBlock(wrap, '未满足项', unmet);
+    listBlock(wrap, '冲突与阻断项', violations, 'viol');
+
+    if (violations.length) {
+      var hint = put(sec, 'p', 'sub-note muted', '括号内为程序侧错误码，便于排查。');
+    }
+    return sec;
+  }
+
+  function buildQuoteNote(p) {
+    var sec = mk('section', 'card');
+    sectionHead(sec, '核价说明', '来自官方核价结果的原文说明');
+    var q = quote();
+    var text = q.explain || ('总额 ' + money(q.total_cents) + '，商品 ' + money(q.product_cents)
+      + '，费用 ' + money(q.fee_cents) + '，优惠 ' + money(q.discount_cents) + '。');
+    put(sec, 'p', 'sub-note', String(text));
+
+    var feeItems = Array.isArray(q.fee_items) ? q.fee_items : [];
+    var disItems = Array.isArray(q.discount_items) ? q.discount_items : [];
+    if (feeItems.length || disItems.length) {
+      var kv = put(sec, 'dl', 'kv');
+      for (var i = 0; i < feeItems.length; i++) {
+        put(kv, 'dt', null, '费用 · ' + txt(feeItems[i] && feeItems[i].label, '费用'));
+        put(kv, 'dd', null, signedMoney(feeItems[i] && feeItems[i].cents));
+      }
+      for (var j = 0; j < disItems.length; j++) {
+        put(kv, 'dt', null, '优惠 · ' + txt(disItems[j] && disItems[j].label, '优惠'));
+        put(kv, 'dd', null, '-' + money(disItems[j] && disItems[j].cents));
+      }
+    }
+    return sec;
+  }
+
+  /* ---------- 顶层备注 ---------- */
+  function renderNotes() {
+    clear(elNotes);
+    var notes = Array.isArray(payload.notes) ? payload.notes : [];
+    if (!notes.length) return;
+    var sec = mk('section', 'card notes-card');
+    sectionHead(sec, '使用说明与数据边界');
+    var ul = put(sec, 'ul', 'plain');
+    for (var i = 0; i < notes.length; i++) put(ul, 'li', null, String(notes[i]));
+    elNotes.appendChild(sec);
+  }
+
+  /* ---------- 折叠：核价依据 + 调试 ---------- */
+  function detailsBlock(id, title) {
+    var d = mk('details', 'card');
+    d.id = id;
+    var s = put(d, 'summary', null, title);
+    s.setAttribute('aria-controls', id + '-body');
+    var body = put(d, 'div', 'details-body');
+    body.id = id + '-body';
+    return { root: d, body: body };
+  }
+
+  function renderDebug() {
+    clear(elDebug);
+
+    var d1 = detailsBlock('basis', '核价依据（field_map / explain / 报价原文）');
+    var b1 = d1.body;
+    var q = quote();
+    var kv = put(b1, 'dl', 'kv');
+    put(kv, 'dt', null, '报价状态');
+    put(kv, 'dd', null, txt(q.status));
+    put(kv, 'dt', null, '核价时间');
+    put(kv, 'dd', null, String(q.quoted_at || '未提供'));
+    put(kv, 'dt', null, '总额');
+    put(kv, 'dd', null, (q.total_cents === null || q.total_cents === undefined) ? 'null' : String(q.total_cents) + ' 分（' + money(q.total_cents) + '）');
+    put(kv, 'dt', null, '商品部分');
+    put(kv, 'dd', null, (q.product_cents === null || q.product_cents === undefined) ? 'null' : String(q.product_cents) + ' 分（' + money(q.product_cents) + '）');
+    put(kv, 'dt', null, '费用');
+    put(kv, 'dd', null, (q.fee_cents === null || q.fee_cents === undefined) ? 'null' : String(q.fee_cents) + ' 分');
+    put(kv, 'dt', null, '折扣');
+    put(kv, 'dd', null, (q.discount_cents === null || q.discount_cents === undefined) ? 'null' : String(q.discount_cents) + ' 分');
+    put(kv, 'dt', null, 'explain');
+    put(kv, 'dd', null, txt(q.explain, '未提供'));
+
+    var fm = (q.field_map && typeof q.field_map === 'object') ? q.field_map : null;
+    if (fm) {
+      put(b1, 'h3', 'sub-head', '字段映射 field_map');
+      var kv2 = put(b1, 'dl', 'kv');
+      var keys = Object.keys(fm);
+      for (var i = 0; i < keys.length; i++) {
+        put(kv2, 'dt', null, keys[i]);
+        put(kv2, 'dd', 'mono', String(fm[keys[i]]));
+      }
+    }
+    elDebug.appendChild(d1.root);
+
+    var d2 = detailsBlock('debug', '调试信息（方案 ID / 商品编码 / 数据来源）');
+    var b2 = d2.body;
+    var kv3 = put(b2, 'dl', 'kv');
+    put(kv3, 'dt', null, 'schema_version');
+    put(kv3, 'dd', 'mono', txt(payload.schema_version));
+    put(kv3, 'dt', null, 'data_mode');
+    put(kv3, 'dd', 'mono', txt(payload.data_mode));
+    put(kv3, 'dt', null, 'generated_at');
+    put(kv3, 'dd', 'mono', txt(payload.generated_at));
+    put(kv3, 'dt', null, 'plan_id');
+    put(kv3, 'dd', 'mono', txt(plan().plan_id));
+    put(kv3, 'dt', null, 'best_plan_id');
+    put(kv3, 'dd', 'mono', payload.best_plan_id === null || payload.best_plan_id === undefined ? 'null' : String(payload.best_plan_id));
+    put(kv3, 'dt', null, 'allocation.method');
+    put(kv3, 'dd', 'mono', txt(alloc().method));
+    put(kv3, 'dt', null, 'store_code');
+    put(kv3, 'dd', 'mono', txt(payload.store && payload.store.store_code));
+    put(kv3, 'dt', null, 'order.mode / be_type / be_code');
+    put(kv3, 'dd', 'mono', txt(payload.order && payload.order.mode) + ' / '
+      + String(payload.order && payload.order.be_type) + ' / '
+      + String(payload.order && payload.order.be_code));
+
+    var src = payload.sources || {};
+    if (src.mcp_endpoint) {
+      put(kv3, 'dt', null, 'MCP 端点');
+      put(kv3, 'dd', 'mono', String(src.mcp_endpoint));
+    }
+    var tools = Array.isArray(src.tools_used) ? src.tools_used : [];
+    if (tools.length) {
+      put(kv3, 'dt', null, '使用工具');
+      put(kv3, 'dd', 'mono', tools.map(String).join('、'));
+    }
+
+    put(b2, 'h3', 'sub-head', '本方案商品编码');
+    var w = put(b2, 'div', 'table-wrap');
+    var t = put(w, 'table');
+    var th = put(t, 'thead');
+    var htr = put(th, 'tr');
+    put(htr, 'th', null, 'line_id');
+    put(htr, 'th', null, 'code');
+    put(htr, 'th', null, 'kind');
+    put(htr, 'th', null, 'price_state');
+    var tb = put(t, 'tbody');
+    var arr = lines();
+    for (var j = 0; j < arr.length; j++) {
+      var ln = arr[j] || {};
+      var tr = put(tb, 'tr');
+      put(tr, 'td', 'mono', txt(ln.line_id));
+      put(tr, 'td', 'mono', txt(ln.code, '未提供'));
+      put(tr, 'td', null, txt(ln.kind, '未标注'));
+      put(tr, 'td', null, txt(ln.price_state, '未标注'));
+    }
+    elDebug.appendChild(d2.root);
+  }
+
+  /* ---------- 复制 ---------- */
+  function buildCopyText() {
+    var p = plan();
+    var q = quote();
+    var store = payload.store || {};
+    var out = [];
+    out.push('麦单合伙人 · 合点一单，各自有数');
+    var s1 = '门店：' + txt(store.store_name, '未提供');
+    if (store.store_code) s1 += '（' + store.store_code + '）';
+    out.push(s1);
+    var loc = [store.city, store.area].filter(Boolean).join(' · ');
+    if (loc) out.push('位置：' + loc);
+    out.push('核价时间：' + fmtTime(q.quoted_at || store.queried_at));
+    var mode = MODE_LABELS[payload.data_mode];
+    if (mode) out.push('数据来源：' + mode.text);
+    if (!amountsTrusted()) out.push('【注意】报价未通过核验，以下金额均待确认，请勿据此付款。');
+    out.push('');
+    out.push('方案 ' + txt(p.plan_id) + '：' + txt(p.label, '未命名方案'));
+    out.push('合计：' + money(q.total_cents));
+
+    out.push('');
+    out.push('【每人应付】');
+    var ms = membersVM();
+    for (var i = 0; i < ms.length; i++) {
+      var m = ms[i] || {};
+      var seg = '成员 ' + txt(m.id) + '：' + payableText(m.payable_cents, m.over_budget);
+      seg += '（预算 ' + money(m.budget_cents) + '，剩余 ' + signedMoney(m.remaining_cents) + '）';
+      if (m.over_budget === true) seg += ' 超预算';
+      out.push(seg);
+    }
+
+    out.push('');
+    out.push('【点单明细】');
+    var arr = lines();
+    for (var j = 0; j < arr.length; j++) {
+      var ln = arr[j] || {};
+      var who = isShared(ln)
+        ? '共享（' + (Array.isArray(ln.shared_by) && ln.shared_by.length ? ln.shared_by.join('、') : '参与人待定') + '）'
+        : '成员 ' + txt(ln.owner);
+      var amount = (ln.price_state === 'missing' || ln.line_total_cents === null || ln.line_total_cents === undefined)
+        ? '价格待确认' : money(ln.line_total_cents);
+      out.push(who + '｜' + txt(ln.name, '未命名商品') + ' ×' + txt(ln.qty, 1) + '｜' + amount);
+    }
+
+    var tradeoffs = Array.isArray(p.tradeoffs) ? p.tradeoffs : [];
+    if (tradeoffs.length) {
+      out.push('');
+      out.push('【取舍】');
+      for (var a = 0; a < tradeoffs.length; a++) out.push('- ' + String(tradeoffs[a]));
+    }
+    var unmet = Array.isArray(p.unmet) ? p.unmet : [];
+    if (unmet.length) {
+      out.push('');
+      out.push('【未满足】');
+      for (var b = 0; b < unmet.length; b++) out.push('- ' + String(unmet[b]));
+    }
+    var vio = Array.isArray(p.violations) ? p.violations : [];
+    if (vio.length) {
+      out.push('');
+      out.push('【冲突】');
+      for (var c = 0; c < vio.length; c++) out.push('- ' + violationText(vio[c]));
+    }
+    return out.join('\n');
+  }
+
+  function legacyCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', 'readonly');
+    ta.style.position = 'fixed';
+    ta.style.top = '-2000px';
+    ta.style.left = '-2000px';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    var ok = false;
+    try {
+      ta.focus();
+      ta.select();
+      ok = document.execCommand('copy');
+    } catch (e) {
+      ok = false;
+    }
+    document.body.removeChild(ta);
+    return ok;
+  }
+
+  var statusTimer = null;
+  function flash(message, bad) {
+    if (!elCopyStatus) return;
+    elCopyStatus.textContent = message;
+    elCopyStatus.style.color = bad ? '#9c2b18' : '#2e7a53';
+    if (statusTimer) window.clearTimeout(statusTimer);
+    statusTimer = window.setTimeout(function () {
+      elCopyStatus.textContent = '';
+    }, 2600);
+  }
+
+  function doCopy() {
+    var text;
+    try { text = buildCopyText(); }
+    catch (e) { flash('生成清单失败', true); return; }
+    var done = function () { flash('已复制纯文本清单', false); };
+    var fail = function () {
+      if (legacyCopy(text)) done();
+      else flash('复制失败，请手动选择页面文本', true);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, fail);
+    } else {
+      fail();
+    }
+  }
+
+  function fatal(message) {
+    clear(elBadges);
+    clear(elStore);
+    clear(elPlan);
+    clear(elNav);
+    clear(elNotes);
+    clear(elDebug);
+    var sec = mk('section', 'card');
+    put(sec, 'p', 'sub-note', message);
+    elPlan.appendChild(sec);
+  }
+
+  function bind() {
+    var btnCopy = document.getElementById('btn-copy');
+    if (btnCopy) btnCopy.addEventListener('click', doCopy);
+    var btnPrint = document.getElementById('btn-print');
+    if (btnPrint) {
+      btnPrint.addEventListener('click', function () { window.print(); });
+    }
+  }
+
+  function init() {
+    bind();
+    if (!payload || typeof payload !== 'object') {
+      fatal('数据读取失败：页面内嵌的 JSON 无法解析，请重新运行渲染脚本。');
+      return;
+    }
+    plans = Array.isArray(payload.plans) ? payload.plans : [];
+    if (!plans.length) {
+      fatal('结果中没有可用方案，无法生成点单卡。');
+      return;
+    }
+    var idx = 0;
+    var best = payload.best_plan_id;
+    if (best) {
+      for (var i = 0; i < plans.length; i++) {
+        if (plans[i] && String(plans[i].plan_id) === String(best)) { idx = i; break; }
+      }
+    }
+    state.index = idx;
+
+    renderHero();
+    renderNav();
+    renderPlan();
+    renderNotes();
+    renderDebug();
+
+    if (elStamp) {
+      elStamp.textContent = 'schema ' + txt(payload.schema_version)
+        + ' · 生成于 ' + fmtTime(payload.generated_at);
+    }
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>

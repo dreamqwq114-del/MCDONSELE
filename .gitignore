@@ -1,0 +1,32 @@
+# 运行产物（结果 JSON、HTML 卡片、临时文件）
+runtime/
+
+# 本地凭据
+.env
+.env.*
+!.env.example
+*.local.json
+mcp-config.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# 探测/调试输出
+probe-*.json
+*.log
+
+# 编辑器与系统
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# 依赖
+node_modules/
+
+# 提交包（构建产物）
+dist/
